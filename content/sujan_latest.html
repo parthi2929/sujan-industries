@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 400px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "violet", "id": "Kanchan Singh", "label": "Kanchan Singh", "shape": "dot", "title": "Kanchan Singh", "value": 6}, {"color": "orange", "id": "BYOMED AI LOSUNG PVT LTD", "label": "BYOMED AI LOSUNG PVT LTD", "shape": "dot", "title": "BYOMED AI LOSUNG PVT LTD", "value": 1}, {"color": "violet", "id": "PUSHAPRAJ SINGHVI", "label": "PUSHAPRAJ SINGHVI", "shape": "dot", "title": "PUSHAPRAJ SINGHVI", "value": 8}, {"color": "orange", "id": "CELLO WORLD LIMITED", "label": "CELLO WORLD LIMITED", "shape": "dot", "title": "CELLO WORLD LIMITED", "value": 1}, {"color": "#3d46ff", "id": "Vijay Jeevan Sujan", "label": "Vijay Jeevan Sujan", "shape": "dot", "title": "Vijay Jeevan Sujan", "value": 19}, {"color": "orange", "id": "JNV VENTURES PVT LTD", "label": "JNV VENTURES PVT LTD", "shape": "dot", "title": "JNV VENTURES PVT LTD", "value": 3}, {"color": "violet", "id": "JAIPRAKASH KHANCHAND VASDANI", "label": "JAIPRAKASH KHANCHAND VASDANI", "shape": "dot", "title": "JAIPRAKASH KHANCHAND VASDANI", "value": 18}, {"color": "orange", "id": "BETHEL AUTOMOTIVE SAFETY SYSTEMS (INDIA)PVT LTD", "label": "BETHEL AUTOMOTIVE SAFETY SYSTEMS (INDIA)PVT LTD", "shape": "dot", "title": "BETHEL AUTOMOTIVE SAFETY SYSTEMS (INDIA)PVT LTD", "value": 2}, {"color": "orange", "id": "JNV NEXTGEN PVT LTD", "label": "JNV NEXTGEN PVT LTD", "shape": "dot", "title": "JNV NEXTGEN PVT LTD", "value": 5}, {"color": "#3d46ff", "id": "Neelkumar Rewachand Sujan", "label": "Neelkumar Rewachand Sujan", "shape": "dot", "title": "Neelkumar Rewachand Sujan", "value": 22}, {"color": "#3d46ff", "id": "Narendra Harish Sujan", "label": "Narendra Harish Sujan", "shape": "dot", "title": "Narendra Harish Sujan", "value": 4}, {"color": "orange", "id": "HUSE MOBILITY PVT LTD", "label": "HUSE MOBILITY PVT LTD", "shape": "dot", "title": "HUSE MOBILITY PVT LTD", "value": 2}, {"color": "#3d46ff", "id": "BRIJESH ASHOK SUJAN", "label": "BRIJESH ASHOK SUJAN", "shape": "dot", "title": "BRIJESH ASHOK SUJAN", "value": 6}, {"color": "violet", "id": "PRASHANT KOTHARI", "label": "PRASHANT KOTHARI", "shape": "dot", "title": "PRASHANT KOTHARI", "value": 2}, {"color": "orange", "id": "BIOSPARK-HEALTHCARE PVT LTD", "label": "BIOSPARK-HEALTHCARE PVT LTD", "shape": "dot", "title": "BIOSPARK-HEALTHCARE PVT LTD", "value": 4}, {"color": "orange", "id": "HOLIX HEALTHCARE PVT LTD", "label": "HOLIX HEALTHCARE PVT LTD", "shape": "dot", "title": "HOLIX HEALTHCARE PVT LTD", "value": 1}, {"color": "violet", "id": "NILESH BASTIMAL JAIN", "label": "NILESH BASTIMAL JAIN", "shape": "dot", "title": "NILESH BASTIMAL JAIN", "value": 3}, {"color": "violet", "id": "FRANZISKA JOHANNA JUNG", "label": "FRANZISKA JOHANNA JUNG", "shape": "dot", "title": "FRANZISKA JOHANNA JUNG", "value": 1}, {"color": "orange", "id": "SUJAN CONTITECH AVS PVT LTD", "label": "SUJAN CONTITECH AVS PVT LTD", "shape": "dot", "title": "SUJAN CONTITECH AVS PVT LTD", "value": 4}, {"color": "violet", "id": "RUCHI GARG", "label": "RUCHI GARG", "shape": "dot", "title": "RUCHI GARG", "value": 3}, {"color": "orange", "id": "D4DT.AI PVT LTD", "label": "D4DT.AI PVT LTD", "shape": "dot", "title": "D4DT.AI PVT LTD", "value": 1}, {"color": "violet", "id": "DEEPAK MITTAL", "label": "DEEPAK MITTAL", "shape": "dot", "title": "DEEPAK MITTAL", "value": 2}, {"color": "violet", "id": "SHUKTIJ SINGH RAO", "label": "SHUKTIJ SINGH RAO", "shape": "dot", "title": "SHUKTIJ SINGH RAO", "value": 1}, {"color": "orange", "id": "OVO LOGISTICS LLP", "label": "OVO LOGISTICS LLP", "shape": "dot", "title": "OVO LOGISTICS LLP", "value": 2}, {"color": "orange", "id": "JNV CANNACO PVT LTD", "label": "JNV CANNACO PVT LTD", "shape": "dot", "title": "JNV CANNACO PVT LTD", "value": 3}, {"color": "orange", "id": "JNV AEROSPACE AND DEFENCE PVT LTD", "label": "JNV AEROSPACE AND DEFENCE PVT LTD", "shape": "dot", "title": "JNV AEROSPACE AND DEFENCE PVT LTD", "value": 3}, {"color": "orange", "id": "JNV ARECA PVT LTD", "label": "JNV ARECA PVT LTD", "shape": "dot", "title": "JNV ARECA PVT LTD", "value": 5}, {"color": "violet", "id": "Aniket Madhavrao Khalkar", "label": "Aniket Madhavrao Khalkar", "shape": "dot", "title": "Aniket Madhavrao Khalkar", "value": 2}, {"color": "orange", "id": "GVO LOGISTICS PVT LTD", "label": "GVO LOGISTICS PVT LTD", "shape": "dot", "title": "GVO LOGISTICS PVT LTD", "value": 2}, {"color": "violet", "id": "RASHMI JAIN", "label": "RASHMI JAIN", "shape": "dot", "title": "RASHMI JAIN", "value": 6}, {"color": "orange", "id": "JAYVEEN ESTABLISHMENT PVT LTD", "label": "JAYVEEN ESTABLISHMENT PVT LTD", "shape": "dot", "title": "JAYVEEN ESTABLISHMENT PVT LTD", "value": 1}, {"color": "violet", "id": "GUTTA VENKATA KUMARI", "label": "GUTTA VENKATA KUMARI", "shape": "dot", "title": "GUTTA VENKATA KUMARI", "value": 4}, {"color": "orange", "id": "ALFA UNIVERSAL VENTURES LLP", "label": "ALFA UNIVERSAL VENTURES LLP", "shape": "dot", "title": "ALFA UNIVERSAL VENTURES LLP", "value": 3}, {"color": "orange", "id": "SHIVHEAL FARMING LLP", "label": "SHIVHEAL FARMING LLP", "shape": "dot", "title": "SHIVHEAL FARMING LLP", "value": 4}, {"color": "orange", "id": "SUJAN LTI REENERGY PVT LTD", "label": "SUJAN LTI REENERGY PVT LTD", "shape": "dot", "title": "SUJAN LTI REENERGY PVT LTD", "value": 2}, {"color": "#3d46ff", "id": "SATVINDARKAUR VIJAY SUJAN", "label": "SATVINDARKAUR VIJAY SUJAN", "shape": "dot", "title": "SATVINDARKAUR VIJAY SUJAN", "value": 8}, {"color": "orange", "id": "KAIZA ENTERPRISE LLP", "label": "KAIZA ENTERPRISE LLP", "shape": "dot", "title": "KAIZA ENTERPRISE LLP", "value": 2}, {"color": "orange", "id": "KAIZA CONSULTANCY LLP", "label": "KAIZA CONSULTANCY LLP", "shape": "dot", "title": "KAIZA CONSULTANCY LLP", "value": 2}, {"color": "orange", "id": "KAIZA INFRA LLP", "label": "KAIZA INFRA LLP", "shape": "dot", "title": "KAIZA INFRA LLP", "value": 2}, {"color": "orange", "id": "ACW INFRA PROJECTS LLP", "label": "ACW INFRA PROJECTS LLP", "shape": "dot", "title": "ACW INFRA PROJECTS LLP", "value": 1}, {"color": "violet", "id": "THOMAS BARKLEY STIMSON", "label": "THOMAS BARKLEY STIMSON", "shape": "dot", "title": "THOMAS BARKLEY STIMSON", "value": 1}, {"color": "orange", "id": "POLYRUB COOPER STANDARD FTS PVT LTD", "label": "POLYRUB COOPER STANDARD FTS PVT LTD", "shape": "dot", "title": "POLYRUB COOPER STANDARD FTS PVT LTD", "value": 5}, {"color": "orange", "id": "JNV-BETHEL AUTOMOTIVE SAFETY SYSTEMS(INDIA) PVT LTD", "label": "JNV-BETHEL AUTOMOTIVE SAFETY SYSTEMS(INDIA) PVT LTD", "shape": "dot", "title": "JNV-BETHEL AUTOMOTIVE SAFETY SYSTEMS(INDIA) PVT LTD", "value": 3}, {"color": "orange", "id": "JNV VENTURES LLP", "label": "JNV VENTURES LLP", "shape": "dot", "title": "JNV VENTURES LLP", "value": 3}, {"color": "orange", "id": "MEGA KLC TECHNICAL PLASTICS PVT LTD", "label": "MEGA KLC TECHNICAL PLASTICS PVT LTD", "shape": "dot", "title": "MEGA KLC TECHNICAL PLASTICS PVT LTD", "value": 4}, {"color": "orange", "id": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD", "label": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD", "shape": "dot", "title": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD", "value": 4}, {"color": "orange", "id": "SUJAN VENTURES LLP", "label": "SUJAN VENTURES LLP", "shape": "dot", "title": "SUJAN VENTURES LLP", "value": 3}, {"color": "orange", "id": "369 PRODUCTION LLP", "label": "369 PRODUCTION LLP", "shape": "dot", "title": "369 PRODUCTION LLP", "value": 1}, {"color": "#3d46ff", "id": "GHANSHAM REWACHAND SUJAN", "label": "GHANSHAM REWACHAND SUJAN", "shape": "dot", "title": "GHANSHAM REWACHAND SUJAN", "value": 2}, {"color": "violet", "id": "ENRIQUE NOGUEROLES MONRABAL", "label": "ENRIQUE NOGUEROLES MONRABAL", "shape": "dot", "title": "ENRIQUE NOGUEROLES MONRABAL", "value": 1}, {"color": "violet", "id": "PEDRO MIGUEL ROLDAO COLACO", "label": "PEDRO MIGUEL ROLDAO COLACO", "shape": "dot", "title": "PEDRO MIGUEL ROLDAO COLACO", "value": 2}, {"color": "violet", "id": "CLAUS PETER SPILLE", "label": "CLAUS PETER SPILLE", "shape": "dot", "title": "CLAUS PETER SPILLE", "value": 1}, {"color": "orange", "id": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD", "label": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD", "shape": "dot", "title": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD", "value": 4}, {"color": "orange", "id": "POLYRUB RUBBERTECH LLP", "label": "POLYRUB RUBBERTECH LLP", "shape": "dot", "title": "POLYRUB RUBBERTECH LLP", "value": 6}, {"color": "#3d46ff", "id": "MANISHA ASHOK SUJAN", "label": "MANISHA ASHOK SUJAN", "shape": "dot", "title": "MANISHA ASHOK SUJAN", "value": 3}, {"color": "orange", "id": "KRTYAVAT PRODUCTIONS LLP", "label": "KRTYAVAT PRODUCTIONS LLP", "shape": "dot", "title": "KRTYAVAT PRODUCTIONS LLP", "value": 1}, {"color": "orange", "id": "ARECA EMBEDDED SYSTEMS PVT LTD", "label": "ARECA EMBEDDED SYSTEMS PVT LTD", "shape": "dot", "title": "ARECA EMBEDDED SYSTEMS PVT LTD", "value": 2}, {"color": "violet", "id": "ZHIQIANG SHAO", "label": "ZHIQIANG SHAO", "shape": "dot", "title": "ZHIQIANG SHAO", "value": 1}, {"color": "#3d46ff", "id": "SHARAN NEEL SUJAN", "label": "SHARAN NEEL SUJAN", "shape": "dot", "title": "SHARAN NEEL SUJAN", "value": 1}, {"color": "#3d46ff", "id": "RISHI NEEL SUJAN", "label": "RISHI NEEL SUJAN", "shape": "dot", "title": "RISHI NEEL SUJAN", "value": 1}, {"color": "#3d46ff", "id": "PADMA HARISH SUJAN", "label": "PADMA HARISH SUJAN", "shape": "dot", "title": "PADMA HARISH SUJAN", "value": 3}, {"color": "orange", "id": "HASHTAG FILM STUDIOS LIMITED LIABILITY PARTNERSHIP", "label": "HASHTAG FILM STUDIOS LIMITED LIABILITY PARTNERSHIP", "shape": "dot", "title": "HASHTAG FILM STUDIOS LIMITED LIABILITY PARTNERSHIP", "value": 1}, {"color": "orange", "id": "GREENTEC CHEMICALS PVT LTD", "label": "GREENTEC CHEMICALS PVT LTD", "shape": "dot", "title": "GREENTEC CHEMICALS PVT LTD", "value": 4}, {"color": "orange", "id": "FLASH CREATIVE LABS LLP", "label": "FLASH CREATIVE LABS LLP", "shape": "dot", "title": "FLASH CREATIVE LABS LLP", "value": 1}, {"color": "orange", "id": "MILLENNIAL SOFTWARE PVT LTD", "label": "MILLENNIAL SOFTWARE PVT LTD", "shape": "dot", "title": "MILLENNIAL SOFTWARE PVT LTD", "value": 1}, {"color": "orange", "id": "SPICY SOUL PRODUCTIONS PVT LTD", "label": "SPICY SOUL PRODUCTIONS PVT LTD", "shape": "dot", "title": "SPICY SOUL PRODUCTIONS PVT LTD", "value": 1}, {"color": "violet", "id": "PARAS BHOJWANI WIJAYA", "label": "PARAS BHOJWANI WIJAYA", "shape": "dot", "title": "PARAS BHOJWANI WIJAYA", "value": 1}, {"color": "violet", "id": "DARYANTO WIJAYA", "label": "DARYANTO WIJAYA", "shape": "dot", "title": "DARYANTO WIJAYA", "value": 1}, {"color": "orange", "id": "PHOENIX GLOBAL POLYMERS LLP", "label": "PHOENIX GLOBAL POLYMERS LLP", "shape": "dot", "title": "PHOENIX GLOBAL POLYMERS LLP", "value": 1}, {"color": "orange", "id": "RAJ PACKAGING INDUSTRIES LIMITED", "label": "RAJ PACKAGING INDUSTRIES LIMITED", "shape": "dot", "title": "RAJ PACKAGING INDUSTRIES LIMITED", "value": 1}, {"color": "orange", "id": "WIM PLAST MOLDETIPO PVT LTD", "label": "WIM PLAST MOLDETIPO PVT LTD", "shape": "dot", "title": "WIM PLAST MOLDETIPO PVT LTD", "value": 1}, {"color": "orange", "id": "POLYRUB PLASTICS PVT LTD", "label": "POLYRUB PLASTICS PVT LTD", "shape": "dot", "title": "POLYRUB PLASTICS PVT LTD", "value": 4}, {"color": "orange", "id": "RUBBERTECH AUTOMOTIVES LLP", "label": "RUBBERTECH AUTOMOTIVES LLP", "shape": "dot", "title": "RUBBERTECH AUTOMOTIVES LLP", "value": 1}, {"color": "orange", "id": "POLYRUB EXTRUSIONS (INDIA) PVT LTD", "label": "POLYRUB EXTRUSIONS (INDIA) PVT LTD", "shape": "dot", "title": "POLYRUB EXTRUSIONS (INDIA) PVT LTD", "value": 5}, {"color": "#3d46ff", "id": "Harish Rewachand Sujan", "label": "Harish Rewachand Sujan", "shape": "dot", "title": "Harish Rewachand Sujan", "value": 4}, {"color": "#3d46ff", "id": "SHEETAL NEEL SUJAN", "label": "SHEETAL NEEL SUJAN", "shape": "dot", "title": "SHEETAL NEEL SUJAN", "value": 2}, {"color": "orange", "id": "MEGA RUBBER TECHNOLOGIES PVT LTD", "label": "MEGA RUBBER TECHNOLOGIES PVT LTD", "shape": "dot", "title": "MEGA RUBBER TECHNOLOGIES PVT LTD", "value": 5}, {"color": "orange", "id": "MCML TRACK \u0026 STRUCTURES PVT LTD", "label": "MCML TRACK \u0026 STRUCTURES PVT LTD", "shape": "dot", "title": "MCML TRACK \u0026 STRUCTURES PVT LTD", "value": 1}, {"color": "orange", "id": "AUTOMATION AND TELECOMMUNICATION SYSTEMS (INDIA)PVT LTD", "label": "AUTOMATION AND TELECOMMUNICATION SYSTEMS (INDIA)PVT LTD", "shape": "dot", "title": "AUTOMATION AND TELECOMMUNICATION SYSTEMS (INDIA)PVT LTD", "value": 1}, {"color": "orange", "id": "MAGNUM ELASTOMERS PVT LTD", "label": "MAGNUM ELASTOMERS PVT LTD", "shape": "dot", "title": "MAGNUM ELASTOMERS PVT LTD", "value": 6}, {"color": "orange", "id": "WIM PLAST LIMITED", "label": "WIM PLAST LIMITED", "shape": "dot", "title": "WIM PLAST LIMITED", "value": 1}, {"color": "orange", "id": "NGI VENTURES PVT LTD", "label": "NGI VENTURES PVT LTD", "shape": "dot", "title": "NGI VENTURES PVT LTD", "value": 2}, {"color": "orange", "id": "SINJAN CONSULTANCY PVT LTD", "label": "SINJAN CONSULTANCY PVT LTD", "shape": "dot", "title": "SINJAN CONSULTANCY PVT LTD", "value": 1}, {"color": "orange", "id": "SCONTEC INDIA PVT LTD", "label": "SCONTEC INDIA PVT LTD", "shape": "dot", "title": "SCONTEC INDIA PVT LTD", "value": 1}, {"color": "orange", "id": "SIMHADH CONSULTING SERVICES LLP", "label": "SIMHADH CONSULTING SERVICES LLP", "shape": "dot", "title": "SIMHADH CONSULTING SERVICES LLP", "value": 2}, {"color": "orange", "id": "ANHADH REALTORS LLP", "label": "ANHADH REALTORS LLP", "shape": "dot", "title": "ANHADH REALTORS LLP", "value": 2}, {"color": "orange", "id": "SUJAN REALTORS PVT LTD", "label": "SUJAN REALTORS PVT LTD", "shape": "dot", "title": "SUJAN REALTORS PVT LTD", "value": 2}, {"color": "orange", "id": "SHREE RATNAKAR PROJECTS PVT LTD", "label": "SHREE RATNAKAR PROJECTS PVT LTD", "shape": "dot", "title": "SHREE RATNAKAR PROJECTS PVT LTD", "value": 1}, {"color": "orange", "id": "PLASTIBLENDS INDIA LIMITED", "label": "PLASTIBLENDS INDIA LIMITED", "shape": "dot", "title": "PLASTIBLENDS INDIA LIMITED", "value": 1}]);
+                  edges = new vis.DataSet([{"from": "Kanchan Singh", "title": 2023, "to": "BYOMED AI LOSUNG PVT LTD"}, {"from": "Kanchan Singh", "title": 2022, "to": "HOLIX HEALTHCARE PVT LTD"}, {"from": "Kanchan Singh", "title": 2020, "to": "SHIVHEAL FARMING LLP"}, {"from": "Kanchan Singh", "title": 2020, "to": "KAIZA ENTERPRISE LLP"}, {"from": "Kanchan Singh", "title": 2020, "to": "KAIZA CONSULTANCY LLP"}, {"from": "Kanchan Singh", "title": 2020, "to": "KAIZA INFRA LLP"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2023, "to": "CELLO WORLD LIMITED"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2019, "to": "MEGA KLC TECHNICAL PLASTICS PVT LTD"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2019, "to": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2016, "to": "PHOENIX GLOBAL POLYMERS LLP"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2016, "to": "RAJ PACKAGING INDUSTRIES LIMITED"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2016, "to": "WIM PLAST MOLDETIPO PVT LTD"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2014, "to": "WIM PLAST LIMITED"}, {"from": "PUSHAPRAJ SINGHVI", "title": 2006, "to": "PLASTIBLENDS INDIA LIMITED"}, {"from": "Vijay Jeevan Sujan", "title": 2022, "to": "JNV VENTURES PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2021, "to": "OVO LOGISTICS LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2021, "to": "BIOSPARK-HEALTHCARE PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2021, "to": "JNV CANNACO PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2021, "to": "JNV AEROSPACE AND DEFENCE PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2021, "to": "JNV ARECA PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2020, "to": "SHIVHEAL FARMING LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2019, "to": "JNV-BETHEL AUTOMOTIVE SAFETY SYSTEMS(INDIA) PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2019, "to": "JNV VENTURES LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2018, "to": "POLYRUB COOPER STANDARD FTS PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2018, "to": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2017, "to": "ALFA UNIVERSAL VENTURES LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2016, "to": "GREENTEC CHEMICALS PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2015, "to": "POLYRUB PLASTICS PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 2015, "to": "POLYRUB RUBBERTECH LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2010, "to": "SIMHADH CONSULTING SERVICES LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2009, "to": "ANHADH REALTORS LLP"}, {"from": "Vijay Jeevan Sujan", "title": 2004, "to": "MAGNUM ELASTOMERS PVT LTD"}, {"from": "Vijay Jeevan Sujan", "title": 1997, "to": "MEGA RUBBER TECHNOLOGIES PVT LTD"}, {"from": "JNV VENTURES PVT LTD", "title": 2022, "to": "JAIPRAKASH KHANCHAND VASDANI"}, {"from": "JNV VENTURES PVT LTD", "title": 2022, "to": "Neelkumar Rewachand Sujan"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2022, "to": "BETHEL AUTOMOTIVE SAFETY SYSTEMS (INDIA)PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2022, "to": "JNV NEXTGEN PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2021, "to": "BIOSPARK-HEALTHCARE PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2021, "to": "JNV ARECA PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2021, "to": "JNV AEROSPACE AND DEFENCE PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2021, "to": "JNV CANNACO PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2020, "to": "SHIVHEAL FARMING LLP"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2019, "to": "JNV VENTURES LLP"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2019, "to": "MEGA KLC TECHNICAL PLASTICS PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2019, "to": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2019, "to": "JNV-BETHEL AUTOMOTIVE SAFETY SYSTEMS(INDIA) PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2018, "to": "SUJAN CONTITECH AVS PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2015, "to": "POLYRUB PLASTICS PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2015, "to": "POLYRUB COOPER STANDARD FTS PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 2005, "to": "POLYRUB EXTRUSIONS (INDIA) PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 1997, "to": "MEGA RUBBER TECHNOLOGIES PVT LTD"}, {"from": "JAIPRAKASH KHANCHAND VASDANI", "title": 1994, "to": "MAGNUM ELASTOMERS PVT LTD"}, {"from": "BETHEL AUTOMOTIVE SAFETY SYSTEMS (INDIA)PVT LTD", "title": 2022, "to": "NILESH BASTIMAL JAIN"}, {"from": "JNV NEXTGEN PVT LTD", "title": 2022, "to": "Neelkumar Rewachand Sujan"}, {"from": "JNV NEXTGEN PVT LTD", "title": 2022, "to": "RUCHI GARG"}, {"from": "JNV NEXTGEN PVT LTD", "title": 2022, "to": "DEEPAK MITTAL"}, {"from": "JNV NEXTGEN PVT LTD", "title": 2022, "to": "SHUKTIJ SINGH RAO"}, {"from": "Neelkumar Rewachand Sujan", "title": 2021, "to": "JNV ARECA PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2021, "to": "BIOSPARK-HEALTHCARE PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2021, "to": "JNV CANNACO PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2021, "to": "JNV AEROSPACE AND DEFENCE PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2020, "to": "SHIVHEAL FARMING LLP"}, {"from": "Neelkumar Rewachand Sujan", "title": 2019, "to": "JNV-BETHEL AUTOMOTIVE SAFETY SYSTEMS(INDIA) PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2019, "to": "JNV VENTURES LLP"}, {"from": "Neelkumar Rewachand Sujan", "title": 2019, "to": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2019, "to": "MEGA KLC TECHNICAL PLASTICS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2017, "to": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2016, "to": "GREENTEC CHEMICALS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2015, "to": "RUBBERTECH AUTOMOTIVES LLP"}, {"from": "Neelkumar Rewachand Sujan", "title": 2015, "to": "POLYRUB EXTRUSIONS (INDIA) PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2015, "to": "POLYRUB COOPER STANDARD FTS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2015, "to": "POLYRUB RUBBERTECH LLP"}, {"from": "Neelkumar Rewachand Sujan", "title": 2014, "to": "POLYRUB PLASTICS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2008, "to": "SUJAN CONTITECH AVS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2007, "to": "SUJAN REALTORS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 2004, "to": "MAGNUM ELASTOMERS PVT LTD"}, {"from": "Neelkumar Rewachand Sujan", "title": 1996, "to": "MEGA RUBBER TECHNOLOGIES PVT LTD"}, {"from": "Narendra Harish Sujan", "title": 2022, "to": "HUSE MOBILITY PVT LTD"}, {"from": "Narendra Harish Sujan", "title": 2020, "to": "SUJAN LTI REENERGY PVT LTD"}, {"from": "Narendra Harish Sujan", "title": 2019, "to": "SUJAN VENTURES LLP"}, {"from": "Narendra Harish Sujan", "title": 2017, "to": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD"}, {"from": "HUSE MOBILITY PVT LTD", "title": 2022, "to": "BRIJESH ASHOK SUJAN"}, {"from": "BRIJESH ASHOK SUJAN", "title": 2020, "to": "SUJAN LTI REENERGY PVT LTD"}, {"from": "BRIJESH ASHOK SUJAN", "title": 2019, "to": "SUJAN VENTURES LLP"}, {"from": "BRIJESH ASHOK SUJAN", "title": 2018, "to": "POLYRUB RUBBERTECH LLP"}, {"from": "BRIJESH ASHOK SUJAN", "title": 2016, "to": "FLASH CREATIVE LABS LLP"}, {"from": "BRIJESH ASHOK SUJAN", "title": 2016, "to": "MILLENNIAL SOFTWARE PVT LTD"}, {"from": "PRASHANT KOTHARI", "title": 2022, "to": "BIOSPARK-HEALTHCARE PVT LTD"}, {"from": "PRASHANT KOTHARI", "title": 2011, "to": "SCONTEC INDIA PVT LTD"}, {"from": "NILESH BASTIMAL JAIN", "title": 2021, "to": "ALFA UNIVERSAL VENTURES LLP"}, {"from": "NILESH BASTIMAL JAIN", "title": 2021, "to": "GVO LOGISTICS PVT LTD"}, {"from": "FRANZISKA JOHANNA JUNG", "title": 2022, "to": "SUJAN CONTITECH AVS PVT LTD"}, {"from": "SUJAN CONTITECH AVS PVT LTD", "title": 2019, "to": "CLAUS PETER SPILLE"}, {"from": "RUCHI GARG", "title": 2022, "to": "D4DT.AI PVT LTD"}, {"from": "RUCHI GARG", "title": 2014, "to": "NGI VENTURES PVT LTD"}, {"from": "DEEPAK MITTAL", "title": 2014, "to": "NGI VENTURES PVT LTD"}, {"from": "OVO LOGISTICS LLP", "title": 2021, "to": "Aniket Madhavrao Khalkar"}, {"from": "JNV ARECA PVT LTD", "title": 2021, "to": "RASHMI JAIN"}, {"from": "JNV ARECA PVT LTD", "title": 2021, "to": "GUTTA VENKATA KUMARI"}, {"from": "Aniket Madhavrao Khalkar", "title": 2021, "to": "GVO LOGISTICS PVT LTD"}, {"from": "RASHMI JAIN", "title": 2021, "to": "JAYVEEN ESTABLISHMENT PVT LTD"}, {"from": "RASHMI JAIN", "title": 2020, "to": "ACW INFRA PROJECTS LLP"}, {"from": "RASHMI JAIN", "title": 2018, "to": "ARECA EMBEDDED SYSTEMS PVT LTD"}, {"from": "RASHMI JAIN", "title": 2012, "to": "SINJAN CONSULTANCY PVT LTD"}, {"from": "RASHMI JAIN", "title": 2007, "to": "SHREE RATNAKAR PROJECTS PVT LTD"}, {"from": "GUTTA VENKATA KUMARI", "title": 2015, "to": "MCML TRACK \u0026 STRUCTURES PVT LTD"}, {"from": "GUTTA VENKATA KUMARI", "title": 2015, "to": "ARECA EMBEDDED SYSTEMS PVT LTD"}, {"from": "GUTTA VENKATA KUMARI", "title": 2015, "to": "AUTOMATION AND TELECOMMUNICATION SYSTEMS (INDIA)PVT LTD"}, {"from": "ALFA UNIVERSAL VENTURES LLP", "title": 2017, "to": "SATVINDARKAUR VIJAY SUJAN"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2020, "to": "KAIZA ENTERPRISE LLP"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2020, "to": "KAIZA CONSULTANCY LLP"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2020, "to": "KAIZA INFRA LLP"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2019, "to": "369 PRODUCTION LLP"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2010, "to": "SIMHADH CONSULTING SERVICES LLP"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2009, "to": "ANHADH REALTORS LLP"}, {"from": "SATVINDARKAUR VIJAY SUJAN", "title": 2005, "to": "POLYRUB EXTRUSIONS (INDIA) PVT LTD"}, {"from": "THOMAS BARKLEY STIMSON", "title": 2020, "to": "POLYRUB COOPER STANDARD FTS PVT LTD"}, {"from": "POLYRUB COOPER STANDARD FTS PVT LTD", "title": 2019, "to": "ENRIQUE NOGUEROLES MONRABAL"}, {"from": "MEGA KLC TECHNICAL PLASTICS PVT LTD", "title": 2019, "to": "PEDRO MIGUEL ROLDAO COLACO"}, {"from": "MEGA KLC POLYMER TECHNOLOGIES PVT LTD", "title": 2019, "to": "PEDRO MIGUEL ROLDAO COLACO"}, {"from": "SUJAN VENTURES LLP", "title": 2019, "to": "GHANSHAM REWACHAND SUJAN"}, {"from": "GHANSHAM REWACHAND SUJAN", "title": 2007, "to": "SUJAN REALTORS PVT LTD"}, {"from": "MEGA HEFA EMISSION TECHNOLOGIES PVT LTD", "title": 2018, "to": "ZHIQIANG SHAO"}, {"from": "POLYRUB RUBBERTECH LLP", "title": 2017, "to": "SHARAN NEEL SUJAN"}, {"from": "POLYRUB RUBBERTECH LLP", "title": 2017, "to": "RISHI NEEL SUJAN"}, {"from": "POLYRUB RUBBERTECH LLP", "title": 2015, "to": "Harish Rewachand Sujan"}, {"from": "MANISHA ASHOK SUJAN", "title": 2018, "to": "KRTYAVAT PRODUCTIONS LLP"}, {"from": "MANISHA ASHOK SUJAN", "title": 2016, "to": "SPICY SOUL PRODUCTIONS PVT LTD"}, {"from": "MANISHA ASHOK SUJAN", "title": 2014, "to": "MAGNUM ELASTOMERS PVT LTD"}, {"from": "PADMA HARISH SUJAN", "title": 2017, "to": "HASHTAG FILM STUDIOS LIMITED LIABILITY PARTNERSHIP"}, {"from": "PADMA HARISH SUJAN", "title": 2014, "to": "MAGNUM ELASTOMERS PVT LTD"}, {"from": "PADMA HARISH SUJAN", "title": 2005, "to": "POLYRUB EXTRUSIONS (INDIA) PVT LTD"}, {"from": "GREENTEC CHEMICALS PVT LTD", "title": 2016, "to": "PARAS BHOJWANI WIJAYA"}, {"from": "GREENTEC CHEMICALS PVT LTD", "title": 2016, "to": "DARYANTO WIJAYA"}, {"from": "POLYRUB PLASTICS PVT LTD", "title": 2015, "to": "Harish Rewachand Sujan"}, {"from": "POLYRUB EXTRUSIONS (INDIA) PVT LTD", "title": 2005, "to": "SHEETAL NEEL SUJAN"}, {"from": "Harish Rewachand Sujan", "title": 1997, "to": "MEGA RUBBER TECHNOLOGIES PVT LTD"}, {"from": "Harish Rewachand Sujan", "title": 1994, "to": "MAGNUM ELASTOMERS PVT LTD"}, {"from": "SHEETAL NEEL SUJAN", "title": 2015, "to": "MEGA RUBBER TECHNOLOGIES PVT LTD"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "minVelocity": 0.75, "repulsion": {"centralGravity": 0.1, "springLength": 200, "springConstant": 0.05, "nodeDistance": 300, "damping": 0.5}, "forceAtlas2Based": {"avoidOverlap": 1, "gravitationalConstant": -50, "centralGravity": 0.01, "springConstant": 0.08, "damping": 0.4}, "maxVelocity": 50, "solver": "forceAtlas2Based", "timestep": 0.35}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
